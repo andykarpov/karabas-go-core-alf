@@ -392,7 +392,7 @@ hdmi_out_xilinx hdmiio(
 );
 
 //--------- ALF --------------
-reg [4:0] tick;
+reg [3:0] tick;
 reg cpu_clk;
 wire cpu_int, cpu_mreq, cpu_iorq, cpu_rd, cpu_wr;
 wire [15:0] cpu_a;
