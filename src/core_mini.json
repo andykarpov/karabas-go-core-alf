@@ -1,0 +1,19 @@
+{
+    "id": "alf",
+    "name": "Alf",
+    "build": "24120820",
+    "bitstream": "karabas_mini_top.bin",
+    "visible": true,
+    "type": "fileloader",
+    "dir": "alf",
+    "filename" : "",
+    "extensions": ".rom,.bin",
+    "order": 6,
+    "eeprom_bank": 255,
+    "roms": [
+         {"filename": "rom/alf.rom", "address": 0}
+    ],
+    "osd": [
+        {"type": "T", "name": "Reset", "hotkey": "Ctrl+Alt+Del"}
+    ]
+}
