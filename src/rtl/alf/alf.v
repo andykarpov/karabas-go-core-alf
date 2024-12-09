@@ -35,11 +35,14 @@ module alf (
 // clock
 wire locked;
 
+wire clk_ay;
+
 clock clock(
    .CLK50(clk_sys), 
-   .CLK(clk), // 64
+   .CLK(clk), // 56
    .VGA_CLK(clk_vga), // 25
 	.MIDI_CLK(clk_midi), // 12
+	// TODO: clk_ay
    .LOCKED(locked)
 );
 
@@ -179,18 +182,21 @@ overlay overlay(
 //--------- ALF --------------
 reg [3:0] tick;
 reg cpu_clk;
-wire cpu_int, cpu_mreq, cpu_iorq, cpu_rd, cpu_wr;
+wire cpu_int, cpu_mreq, cpu_iorq, cpu_rd, cpu_wr, cpu_m1;
 wire [15:0] cpu_a;
 wire [7:0] cpu_di, cpu_do;
-wire [20:0] rom_a;
-wire [7:0] rom_do;
+wire [20:0] rom_a, ram_a;
+wire [7:0] rom_do, ram_do, ay_do;
+wire [13:0] vram_a;
+wire vram_wr;
 wire [12:0] vram_va;
 wire [7:0] vram_vd;
 reg [2:0] bordercolor;
-wire [7:0] ram1_do, ram2_do, ram3_do;
-wire [0:0] ram1_wr, ram2_wr, ram3_wr;
+wire rom_cs, ram_cs, ay_cs;
 reg [7:0] rom_reg;
+reg [7:0] port_7ffd;
 reg beeper;
+reg [7:0] ay_a, ay_b, ay_c;
 
 video video(
     .VGA_CLK(clk_vga),
@@ -215,7 +221,7 @@ T80se cpu(
     .INT_n(cpu_int),
     .NMI_n(1'b1),
     .BUSRQ_n(1'b1),
-    .M1_n(),
+    .M1_n(cpu_m1),
     .MREQ_n(cpu_mreq),
     .IORQ_n(cpu_iorq),
     .RD_n(cpu_rd),
@@ -230,32 +236,30 @@ T80se cpu(
 
 vram vram(
    .clka(clk),
-   .wea(ram1_wr),
-   .addra(cpu_a[13:0]),
+   .wea(vram_wr),
+   .addra(vram_a),
    .dina(cpu_do),
-   .douta(ram1_do),
+   .douta(),
    .clkb(clk_vga),
    .web(1'b0),
-   .addrb({1'b0, vram_va}),
+   .addrb({port_7ffd[3], vram_va}),
    .dinb(8'b0),
    .doutb(vram_vd)
 );
 
-ram ram2(
-   .clka(clk),
-   .wea(ram2_wr),
-   .addra(cpu_a[13:0]),
-   .dina(cpu_do),
-   .douta(ram2_do)
-);
-
-ram ram3(
-   .clka(clk),
-   .wea(ram3_wr),
-   .addra(cpu_a[13:0]),
-   .dina(cpu_do),
-   .douta(ram3_do)
-);  
+ay8910 ay38910(
+   .CLK(clk),
+   .CLC(clk_ay),
+   .RESET(btn_reset_n),
+   .BDIR(~cpu_wr),
+   .CS(ay_cs),
+   .BC(cpu_a[14]),
+   .DI(cpu_do),
+   .DO(ay_do),
+   .OUT_A(ay_a),
+   .OUT_B(ay_b),
+   .OUT_C(ay_c)
+); 
 
 always @(posedge clk) 
 begin
@@ -268,77 +272,96 @@ begin
 	begin
 		cpu_clk <= 1'b0;
 		tick <= tick + 1;
-		if (tick == 4'b1111) // 64 div 16 = 4.0
+		if (tick == 4'b1111) // 56 div 16 = 3.5
 		begin
 			cpu_clk <= 1'b1;
 		end
 	end
 end
 
-assign cpu_di = (cpu_a[15:14] == 2'b00 && cpu_mreq == 1'b0 && rom_reg[7] == 1'b0) ? rom_do : // embedded rom
-				 (cpu_a[15:14] == 2'b00 && cpu_mreq == 1'b0 && rom_reg[7:6] == 2'b10 && cart_size == 1048576) ? rom_do :  // ext rom 1024
-				 (cpu_a[15:14] == 2'b00 && cpu_mreq == 1'b0 && rom_reg[7:5] == 3'b100 && cart_size == 524288) ? rom_do :  // ext rom 512
-				 (cpu_a[15:14] == 2'b00 && cpu_mreq == 1'b0 && rom_reg[7:4] == 4'b1000 && cart_size == 262144) ? rom_do :  // ext rom 256
-				 (cpu_a[15:14] == 2'b00 && cpu_mreq == 1'b0 && rom_reg[7:3] == 5'b10000 && cart_size == 131072) ? rom_do :  // ext rom 128
-				 (cpu_a[15:14] == 2'b00 && cpu_mreq == 1'b0 && rom_reg[7:2] == 6'b100000 && cart_size == 65536) ? rom_do :  // ext rom 64
-				 (cpu_a[15:14] == 2'b00 && cpu_mreq == 1'b0 && rom_reg[7:1] == 7'b1000000 && cart_size == 32768) ? rom_do :  // ext rom 32
-				 (cpu_a[15:14] == 2'b00 && cpu_mreq == 1'b0 && rom_reg[7:0] == 8'b10000000 && cart_size == 16384) ? rom_do :  // ext rom 16
-				 (cpu_a[15:14] == 2'b01 && cpu_mreq == 1'b0) ? ram1_do : // vram
-				 (cpu_a[15:14] == 2'b10 && cpu_mreq == 1'b0) ? ram2_do : // ram2
-				 (cpu_a[15:14] == 2'b11 && cpu_mreq == 1'b0) ? ram3_do : // ram3
-				 (cpu_a[5] == 1'b0 && cpu_rd == 1'b0 && cpu_iorq == 1'b0) ? alf_joy_l :  // #1F (kempston) 101 + D[4:0]=FUDLR
-				 (cpu_a[0] == 1'b0 && cpu_rd == 1'b0 && cpu_iorq == 1'b0) ? alf_joy_r :  // #FE (keyb) 000 + D[4:0]=!(LURDF)
+reg tick_ay;
+always @(posedge clk)
+begin
+	if (cpu_clk)
+		tick_ay <= ~tick_ay; 
+end
+
+assign clk_ay = cpu_clk && tick_ay; // 1.75 MHz enable signal
+
+assign rom_cs = ~((cpu_a[15:14] == 2'b00) && ~cpu_mreq);
+assign ram_cs = ~((cpu_a[15:14] != 2'b00) && ~cpu_mreq);
+
+assign cpu_di = (~rom_cs) ? rom_do : // rom
+				 (~ram_cs) ? ram_do : // ram
+				 (~ay_cs) ? ay_do : // ay3-8912 #fffd
+				 ((cpu_a == 16'h7ffd) && ~cpu_rd & ~cpu_iorq) ? port_7ffd : // #7ffd read
+				 (~cpu_a[5] && ~cpu_rd && ~cpu_iorq) ? alf_joy_l :  // #1F (kempston) 101 + D[4:0]=FUDLR
+				 (~cpu_a[0] && ~cpu_rd && ~cpu_iorq) ? alf_joy_r :  // #FE (keyb) 000 + D[4:0]=!(LURDF)
 				 8'b11111111;
 
-assign ram1_wr = (cpu_a[15:14] == 2'b01 && cpu_mreq == 1'b0 && cpu_wr == 1'b0) ? 1'b1 : 1'b0;
-assign ram2_wr = (cpu_a[15:14] == 2'b10 && cpu_mreq == 1'b0 && cpu_wr == 1'b0) ? 1'b1 : 1'b0;
-assign ram3_wr = (cpu_a[15:14] == 2'b11 && cpu_mreq == 1'b0 && cpu_wr == 1'b0) ? 1'b1 : 1'b0;
-assign rom_a = (cart_size == 1048576) ? {rom_reg[7], rom_reg[5:0], cpu_a[13:0]} : 
-					(cart_size == 524288) ? {rom_reg[7], 1'b0, rom_reg[4:0], cpu_a[13:0]} : 
-					(cart_size == 262144) ? {rom_reg[7], 2'b00, rom_reg[3:0], cpu_a[13:0]} : 
-					(cart_size == 131072) ? {rom_reg[7], 3'b000, rom_reg[2:0], cpu_a[13:0]} : 
-					(cart_size == 65536) ? {rom_reg[7], 4'b0000, rom_reg[1:0], cpu_a[13:0]} : 
-					(cart_size == 32768) ? {rom_reg[7], 5'b00000, rom_reg[0], cpu_a[13:0]} : 
-					(cart_size == 16384) ? {rom_reg[7], 6'b000000, cpu_a[13:0]} : 
-					{7'b0000000, cpu_a[13:0]};
+assign vram_wr = (((cpu_a[15:13] == 3'b010) || ((cpu_a[15:13] == 3'b110) && port_7ffd[2] && port_7ffd[0])) && ~cpu_mreq && ~cpu_wr);
+assign vram_a = (cpu_a[15:13] == 3'b010) ? {1'b0, cpu_a[12:0]} : {port_7ffd[1], cpu_a[12:0]};
+assign rom_a = (rom_reg[7]) ? {1'b1, rom_reg[5:0], cpu_a[13:0]} : {2'b01, rom_reg[4:0], cpu_a[13:0]}; // ext / int rom mux
+assign ram_a = (cpu_a[15:14] == 2'b11) ? {4'b0000, port_7ffd[2:0], cpu_a[13:0]} : {4'b0000, cpu_a[14], cpu_a}; // ram
 
 // using one sram chip for embedded and external rom
-// internal rom: MA[20] = 0
-// external rom: MA[20] = 1
-assign ma = (romloader_act) ? {1'b0, romloader_addr[19:0]} : 
-				((fileloader_act) ? {1'b1, fileloader_addr[19:0]} : 
-				rom_a);
-assign mwr_n = (romloader_act) ? {1'b1, ~romloader_wr} : 
-					(fileloader_act) ? {1'b1, ~fileloader_wr} : 
-					2'b11;
-assign mrd_n = 2'b10;
-assign md = (romloader_act) ? ((romloader_wr) ? {8'bz, romloader_data} : 16'bz) : 
-				((fileloader_act) ? ((fileloader_wr) ? {8'bz, fileloader_data} : 16'bz) : 16'bz);
-assign rom_do = md[7:0];
+// internal rom: MA[20:19] = 01 (512KB)
+// external rom: MA[20:19] = 1x (1.0MB)
+// internal ram: MA[20:19] = 00 (512KB)
+assign ma = (romloader_act) ? {2'b01, romloader_addr[18:0]} : // rom loader address to write rom from mcu
+				((fileloader_act) ? {1'b1, fileloader_addr[19:0]} : // file loader address to wtite rom cart from mcu
+				((~ram_cs) ? ram_a : // ram 128k access
+				rom_a)); // rom (int/ext) access
 
-assign audio_out_l = {1'b0, beeper, 13'b0};
-assign audio_out_r = {1'b0, beeper, 13'b0};
+assign mwr_n = (romloader_act) ? {1'b1, ~romloader_wr} : // rom loader write
+					((fileloader_act) ? {1'b1, ~fileloader_wr} :  // file loader write
+					((~cpu_mreq && ~cpu_wr && ~ram_cs) ? 2'b10 : 2'b11)); // ram write
+
+assign mrd_n = (~cpu_mreq && ~cpu_rd) ? 2'b10 : 2'b11; // ram/rom read
+
+assign md = (romloader_act) ? ((romloader_wr) ? {8'bz, romloader_data} : 16'bz) : // rom loader data to write
+				((fileloader_act) ? ((fileloader_wr) ? {8'bz, fileloader_data} : 16'bz) :  // file loader data to write
+				((~cpu_mreq && ~cpu_wr) ? {8'bz, cpu_do} : 16'bz)); // ram/rom to write
+
+assign rom_do = md[7:0]; // todo: split ram_do/rom_do into latched reg
+assign ram_do = md[7:0];
+
+assign audio_out_l = {2'b0, beeper, 12'b0} + {3'b0, ay_a, 5'b0} + {4'b0, ay_b, 4'b0};
+assign audio_out_r = {2'b0, beeper, 12'b0} + {3'b0, ay_c, 5'b0} + {4'b0, ay_b, 4'b0};
 assign audio_beeper = beeper;
 
 assign video_red = osd_r;
 assign video_green = osd_g;
 assign video_blue = osd_b;
 
+assign ay_cs = ~(cpu_a[15] && cpu_a[13] && ~cpu_a[1] && cpu_m1 && ~cpu_iorq);
+
 // ports
 always @(posedge clk)
 begin
-	if (btn_reset_n == 1'b0) 
-		rom_reg <= 8'b0;
-	else
+	if (~btn_reset_n)
 	begin
-		if (cpu_iorq == 1'b0 && cpu_wr == 1'b0 && cpu_a[5] == 1'b0) // port #5F - rom banks
-			rom_reg <= cpu_do;
-		
-		if (cpu_iorq == 1'b0 && cpu_wr == 1'b0 && cpu_a[0] == 1'b0) // port #FE - border + beeper
+		rom_reg <= 8'b0;
+		port_7ffd <= 8'b0;
+	end
+	else
+	begin		
+		if (~cpu_iorq && ~cpu_wr)
 		begin
-			beeper <= cpu_do[4];
-			bordercolor <= cpu_do[2:0];
-		end
+			if (~cpu_a[15] && ~cpu_a[1]) // #7ffd
+			begin
+				if (~port_7ffd[5]) // if not locked
+					port_7ffd <= cpu_do; // 5 - locked, 4 - romsel, 3 - screen, 2:0 - page
+			end
+			else if (~cpu_a[5]) // port #5F - rom banks
+				rom_reg <= cpu_do;
+
+			else if (~cpu_a[0]) // port #FE - border + beeper
+			begin
+				beeper <= cpu_do[4];
+				bordercolor <= cpu_do[2:0];
+			end
+		end	
 	end
 end
 

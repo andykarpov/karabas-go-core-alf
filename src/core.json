@@ -1,6 +1,6 @@
 {
-    "id": "alf",
-    "name": "Alf",
+    "id": "alf128",
+    "name": "Alf-128",
     "build": "24120902",
     "bitstream": "karabas_go_top.bin",
     "visible": true,
