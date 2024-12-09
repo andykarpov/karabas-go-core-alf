@@ -54,8 +54,9 @@
 // "Output    Output      Phase     Duty      Pk-to-Pk        Phase"
 // "Clock    Freq (MHz) (degrees) Cycle (%) Jitter (ps)  Error (ps)"
 //----------------------------------------------------------------------------
-// CLK_OUT1____56.000______0.000______50.0______557.143____150.000
-// CLK_OUT2____25.000______0.000______50.0______300.000____150.000
+// CLK_OUT1____63.889______0.000______50.0______327.143____239.139
+// CLK_OUT2____25.000______0.000______50.0______400.534____239.139
+// CLK_OUT3____11.979______0.000______50.0______464.717____239.139
 //
 //----------------------------------------------------------------------------
 // "Input Clock   Freq (MHz)    Input Jitter (UI)"
@@ -74,6 +75,7 @@
     // Clock out ports
     .CLK(CLK),     // OUT
     .VGA_CLK(VGA_CLK),     // OUT
+    .MIDI_CLK(MIDI_CLK),     // OUT
     // Status and control signals
     .LOCKED(LOCKED));      // OUT
 // INST_TAG_END ------ End INSTANTIATION Template ---------

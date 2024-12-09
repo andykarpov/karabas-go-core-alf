@@ -64,9 +64,9 @@ module clock_exdes
   input         CLK_IN1,
   // Reset that only drives logic in example design
   input         COUNTER_RESET,
-  output [2:1]  CLK_OUT,
+  output [3:1]  CLK_OUT,
   // High bits of counters driven by clocks
-  output [2:1]  COUNT,
+  output [3:1]  COUNT,
   // Status and control signals
   output        LOCKED
  );
@@ -75,7 +75,8 @@ module clock_exdes
   //-------------------------------
   // Counter width
   localparam    C_W       = 16;
-  localparam    NUM_C     = 2;
+  // Number of counters
+  localparam    NUM_C     = 3;
   genvar        count_gen;
   // When the clock goes out of lock, reset the counters
   wire          reset_int = !LOCKED || COUNTER_RESET;
@@ -100,6 +101,7 @@ module clock_exdes
     // Clock out ports
     .CLK           (clk_int[1]),
     .VGA_CLK           (clk_int[2]),
+    .MIDI_CLK           (clk_int[3]),
     // Status and control signals
     .LOCKED             (LOCKED));
 
@@ -126,6 +128,7 @@ endgenerate
   //-----------------------------------------
   assign clk[1] = clk_int[1];
   assign clk[2] = clk_int[2];
+  assign clk[3] = clk_int[3];
 
 
   // Reset synchronizer
