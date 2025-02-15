@@ -317,7 +317,7 @@ assign mwr_n = (romloader_act) ? {1'b1, ~romloader_wr} : // rom loader write
 					((fileloader_act) ? {1'b1, ~fileloader_wr} :  // file loader write
 					((~cpu_mreq && ~cpu_wr && ~ram_cs) ? 2'b10 : 2'b11)); // ram write
 
-assign mrd_n = (~cpu_mreq && ~cpu_rd) ? 2'b10 : 2'b11; // ram/rom read
+assign mrd_n = 2'b10; // (~cpu_mreq && ~cpu_rd) ? 2'b10 : 2'b11; // ram/rom read
 
 assign md = (romloader_act) ? ((romloader_wr) ? {8'bz, romloader_data} : 16'bz) : // rom loader data to write
 				((fileloader_act) ? ((fileloader_wr) ? {8'bz, fileloader_data} : 16'bz) :  // file loader data to write

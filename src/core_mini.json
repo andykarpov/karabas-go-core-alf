@@ -1,8 +1,9 @@
 {
     "id": "alf128",
     "name": "Alf-128",
-    "build": "24120914",
+    "build": "25021517",
     "bitstream": "karabas_mini_top.bin",
+    "spi_freq": 64,
     "visible": true,
     "type": "fileloader",
     "dir": "alf",
