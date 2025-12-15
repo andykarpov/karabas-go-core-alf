@@ -1,0 +1,20 @@
+{
+    "id": "alf128",
+    "name": "Alf-128",
+    "build": "25021517",
+    "bitstream": "karabas_minig_top.bin",
+    "spi_freq": 64,
+    "visible": true,
+    "type": "fileloader",
+    "dir": "alf",
+    "filename" : "",
+    "extensions": ".rom,.bin",
+    "order": 6,
+    "eeprom_bank": 255,
+    "roms": [
+         {"filename": "rom/alf.rom", "address": 0}
+    ],
+    "osd": [
+        {"type": "T", "name": "Reset", "hotkey": "Ctrl+Alt+Del"}
+    ]
+}
