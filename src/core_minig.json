@@ -1,7 +1,7 @@
 {
     "id": "alf",
     "name": "Alf",
-    "build": "25021601",
+    "build": "25122323",
     "bitstream": "karabas_minig_top.bin",
     "spi_freq": 64,
     "visible": true,

@@ -207,7 +207,7 @@ alf alf(
 
 //---------- DAC ------------
 
-PCM5102 PCM5102(
+PCM5102 #(.DAC_CLK_DIV_BITS(3)) PCM5102(
 	.clk(clk_vga),
 	.reset(areset),
 	.left(audio_out_l),
