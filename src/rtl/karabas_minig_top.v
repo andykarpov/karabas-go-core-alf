@@ -163,6 +163,7 @@ wire clk, clk_vga, clk_midi, areset;
 wire [15:0] audio_out_l, audio_out_r;
 wire [7:0] video_r, video_g, video_b;
 wire video_hsync, video_vsync;
+wire dvi_only;
 
 // hdmi pll
 wire clk_hdmi, clk_hdmi_n;
@@ -202,7 +203,8 @@ alf alf(
 	.video_blue(video_b),
 	.video_hsync(video_hsync),
 	.video_vsync(video_vsync),
-	.video_blank(video_blank)
+	.video_blank(video_blank),
+	.dvi_only(dvi_only)
 );
 
 //---------- DAC ------------
@@ -265,13 +267,27 @@ hdmi hdmi(
 	.O_BLUE(tmds_blue)
 );
 
+wire [9:0] dvi_red, dvi_green, dvi_blue;
+
+dvi dvi(
+	.CLK(clk_vga),
+	.RESET(areset),
+	.RGB({video_r,video_g,video_b}),
+	.HSYNC(video_hsync),
+	.VSYNC(video_vsync),
+	.DE(~video_blank),
+	.ENC_RED(dvi_red),
+	.ENC_GREEN(dvi_green),
+	.ENC_BLUE(dvi_blue)
+);
+
 hdmi_out_xilinx hdmiio(
 	.clock_pixel_i(clk_vga),
 	.clock_tdms_i(clk_hdmi),
 	.clock_tdms_n_i(clk_hdmi_n),
-	.red_i(tmds_red),
-	.green_i(tmds_green),
-	.blue_i(tmds_blue),
+	.red_i(dvi_only ? dvi_red : tmds_red),
+	.green_i(dvi_only ? dvi_green : tmds_green),
+	.blue_i(dvi_only ? dvi_blue : tmds_blue),
 	.tmds_out_p(TMDS_P),
 	.tmds_out_n(TMDS_N)
 );
