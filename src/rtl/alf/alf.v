@@ -29,7 +29,8 @@ module alf (
 	output wire [7:0] video_blue,
 	output wire video_hsync,
 	output wire video_vsync,
-	output wire video_blank
+	output wire video_blank,
+	output wire dvi_only
 );
 
 // clock
@@ -119,6 +120,9 @@ mcu mcu(
 	.SD2_MOSI(),
 	.SD2_MISO(),
 	.SD2_SCK(),
+	
+	.HWID(),
+	.DVI_ONLY(dvi_only),
 	
 	.DEBUG_ADDR(16'h00),
 	.DEBUG_DATA(debug_data)
