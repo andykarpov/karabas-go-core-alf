@@ -1,7 +1,9 @@
 `timescale 1ns / 1ps
 `default_nettype wire
 
-module alf (
+module alf #(
+	parameter BURST_MAX_MHZ = 0 // see mcu.vhd
+)(
    input wire clk_sys,
 	
 	output wire clk,
@@ -13,6 +15,8 @@ module alf (
 	output wire mcu_miso,
 	input wire mcu_sck,
 	input wire mcu_cs_n,
+	input wire mcu_burst_cs_n,  // burst transfers (karabas-go-firmware docs/burst_protocol.md)
+	output wire mcu_burst_ready,
 	
 	output wire [15:0] audio_out_l,
 	output wire [15:0] audio_out_r,
@@ -73,7 +77,7 @@ begin
 	prev_fileloader_act <= fileloader_act;	
 end
 
-mcu mcu(
+mcu #(.BURST_MAX_MHZ(BURST_MAX_MHZ)) mcu(
 	.CLK(clk),
 	.N_RESET(~areset),
 	
@@ -84,6 +88,8 @@ mcu mcu(
 	
 	.MCU_SPI_FT_SS(1'b1),
 	.MCU_SPI_SD2_SS(1'b1),
+	.MCU_BURST_CS_N(mcu_burst_cs_n),
+	.MCU_BURST_READY(mcu_burst_ready),
 	
 	.KB_STATUS(hid_kb_status),
 	.KB_DAT0(hid_kb_dat0),

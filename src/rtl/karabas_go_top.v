@@ -188,6 +188,11 @@ wire [7:0] video_r, video_g, video_b;
 wire video_hsync, video_vsync;
 
 // ---------- ALF -------------
+// burst transfers from the mcu (karabas-go-firmware docs/burst_protocol.md)
+wire mcu_burst_ready;
+assign MCU_SPI_IO[0] = mcu_burst_ready;
+assign MCU_SPI_IO[1] = 1'bz;
+
 alf alf(
 	.clk_sys(CLK_50MHZ),
 	
@@ -200,6 +205,9 @@ alf alf(
 	.mcu_miso(MCU_MISO),
 	.mcu_sck(MCU_SCK),
 	.mcu_cs_n(MCU_CS_N),
+	// burst transfers: firmware IO0 (GPIO14) = MCU_SPI_IO[1] (M11), IO1 (GPIO2) = MCU_SPI_IO[0] (N9)
+	.mcu_burst_cs_n(MCU_SPI_IO[1]),
+	.mcu_burst_ready(mcu_burst_ready),
 	
 	.audio_out_l(audio_out_l),
 	.audio_out_r(audio_out_r),
