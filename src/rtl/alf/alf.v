@@ -279,14 +279,10 @@ begin
 	end
 end
 
-assign cpu_di = (cpu_a[15:14] == 2'b00 && cpu_mreq == 1'b0 && rom_reg[7] == 1'b0) ? rom_do : // embedded rom
-				 (cpu_a[15:14] == 2'b00 && cpu_mreq == 1'b0 && rom_reg[7:6] == 2'b10 && cart_size == 1048576) ? rom_do :  // ext rom 1024
-				 (cpu_a[15:14] == 2'b00 && cpu_mreq == 1'b0 && rom_reg[7:5] == 3'b100 && cart_size == 524288) ? rom_do :  // ext rom 512
-				 (cpu_a[15:14] == 2'b00 && cpu_mreq == 1'b0 && rom_reg[7:4] == 4'b1000 && cart_size == 262144) ? rom_do :  // ext rom 256
-				 (cpu_a[15:14] == 2'b00 && cpu_mreq == 1'b0 && rom_reg[7:3] == 5'b10000 && cart_size == 131072) ? rom_do :  // ext rom 128
-				 (cpu_a[15:14] == 2'b00 && cpu_mreq == 1'b0 && rom_reg[7:2] == 6'b100000 && cart_size == 65536) ? rom_do :  // ext rom 64
-				 (cpu_a[15:14] == 2'b00 && cpu_mreq == 1'b0 && rom_reg[7:1] == 7'b1000000 && cart_size == 32768) ? rom_do :  // ext rom 32
-				 (cpu_a[15:14] == 2'b00 && cpu_mreq == 1'b0 && rom_reg[7:0] == 8'b10000000 && cart_size == 16384) ? rom_do :  // ext rom 16
+// rom area: embedded rom (rom_reg[7] = 0) or the cartridge (rom_reg[7] = 1), always readable.
+// Bank bits above the rom size select a mirror, as on real roms where those address lines are not
+// connected (they used to read as FF; the alf-128 branch does not gate them either).
+assign cpu_di = (cpu_a[15:14] == 2'b00 && cpu_mreq == 1'b0) ? rom_do : // embedded / cartridge rom
 				 (cpu_a[15:14] == 2'b01 && cpu_mreq == 1'b0) ? ram1_do : // vram
 				 (cpu_a[15:14] == 2'b10 && cpu_mreq == 1'b0) ? ram2_do : // ram2
 				 (cpu_a[15:14] == 2'b11 && cpu_mreq == 1'b0) ? ram3_do : // ram3
@@ -297,14 +293,17 @@ assign cpu_di = (cpu_a[15:14] == 2'b00 && cpu_mreq == 1'b0 && rom_reg[7] == 1'b0
 assign ram1_wr = (cpu_a[15:14] == 2'b01 && cpu_mreq == 1'b0 && cpu_wr == 1'b0) ? 1'b1 : 1'b0;
 assign ram2_wr = (cpu_a[15:14] == 2'b10 && cpu_mreq == 1'b0 && cpu_wr == 1'b0) ? 1'b1 : 1'b0;
 assign ram3_wr = (cpu_a[15:14] == 2'b11 && cpu_mreq == 1'b0 && cpu_wr == 1'b0) ? 1'b1 : 1'b0;
-assign rom_a = (cart_size == 1048576) ? {rom_reg[7], rom_reg[5:0], cpu_a[13:0]} : 
-					(cart_size == 524288) ? {rom_reg[7], 1'b0, rom_reg[4:0], cpu_a[13:0]} : 
-					(cart_size == 262144) ? {rom_reg[7], 2'b00, rom_reg[3:0], cpu_a[13:0]} : 
-					(cart_size == 131072) ? {rom_reg[7], 3'b000, rom_reg[2:0], cpu_a[13:0]} : 
-					(cart_size == 65536) ? {rom_reg[7], 4'b0000, rom_reg[1:0], cpu_a[13:0]} : 
-					(cart_size == 32768) ? {rom_reg[7], 5'b00000, rom_reg[0], cpu_a[13:0]} : 
-					(cart_size == 16384) ? {rom_reg[7], 6'b000000, cpu_a[13:0]} : 
-					{7'b0000000, cpu_a[13:0]};
+// cartridge bank, masked to the cartridge size (smaller cartridges are mirrored)
+wire [5:0] cart_bank = (cart_size == 1048576) ? rom_reg[5:0] :
+					(cart_size == 524288) ? {1'b0, rom_reg[4:0]} :
+					(cart_size == 262144) ? {2'b00, rom_reg[3:0]} :
+					(cart_size == 131072) ? {3'b000, rom_reg[2:0]} :
+					(cart_size == 65536) ? {4'b0000, rom_reg[1:0]} :
+					(cart_size == 32768) ? {5'b00000, rom_reg[0]} :
+					(cart_size == 16384) ? 6'b000000 :
+					rom_reg[5:0]; // other sizes: no mirroring
+// the embedded rom (32 KB, two banks) is mirrored and does not depend on the cartridge
+assign rom_a = (rom_reg[7]) ? {1'b1, cart_bank, cpu_a[13:0]} : {1'b0, 5'b00000, rom_reg[0], cpu_a[13:0]};
 
 // using one sram chip for embedded and external rom
 // internal rom: MA[20] = 0
