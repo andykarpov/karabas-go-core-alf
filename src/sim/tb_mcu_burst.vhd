@@ -14,6 +14,7 @@ use IEEE.numeric_std.all;
 
 entity tb_mcu_burst is
 	generic (
+		CLASSIC_SCK_HALF_PS : integer := 31250; -- classic frames: 31250 = 16 MHz, 10000 = 50 MHz (spi_freq 64)
 		CLK_PERIOD_PS     : integer := 46560; -- mcu clock (46560 = 21.477 MHz)
 		BURST_SCK_HALF_PS : integer := 31250; -- burst SCK half period (31250 = 16 MHz, 15625 = 32 MHz)
 		MAX_MHZ           : integer := 0      -- BURST_MAX_MHZ of the DUT, expected in the CMD_CAPS answer
@@ -23,7 +24,7 @@ end tb_mcu_burst;
 architecture sim of tb_mcu_burst is
 
 	constant CLK_PERIOD : time := CLK_PERIOD_PS * 1 ps;
-	constant SCK_HALF   : time := 31.25 ns;  -- 16 MHz, classic frames
+	constant SCK_HALF   : time := CLASSIC_SCK_HALF_PS * 1 ps; -- classic frames
 	constant BURST_HALF : time := BURST_SCK_HALF_PS * 1 ps;
 
 	signal clk       : std_logic := '0';
