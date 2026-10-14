@@ -106,7 +106,7 @@ module karabas_mini_top (
 	input wire MCU_SCK,
 	inout wire MCU_MOSI,
 	output wire MCU_MISO,	
-	input wire [4:0] MCU_IO,
+	inout wire [4:0] MCU_IO, // [0] burst cs_n, [1] burst ready, [2] sd2 cs_n, [3] ft cs_n, [4] ft clk (mod): input only
 	
 	//---------------------------
 	output wire MIDI_TX,
@@ -179,6 +179,12 @@ pllx5 pllx5(
 );	
 
 // ---------- ALF -------------
+// burst transfers from the mcu (karabas-go-firmware docs/burst_protocol.md)
+wire mcu_burst_ready;
+assign MCU_IO[1] = mcu_burst_ready;
+assign MCU_IO[0] = 1'bz;
+assign MCU_IO[4:2] = 3'bzzz;
+
 alf alf(
 	.clk_sys(CLK_50MHZ),
 	
@@ -191,6 +197,8 @@ alf alf(
 	.mcu_miso(MCU_MISO),
 	.mcu_sck(MCU_SCK),
 	.mcu_cs_n(MCU_CS_N),
+	.mcu_burst_cs_n(MCU_IO[0]),
+	.mcu_burst_ready(mcu_burst_ready),
 	
 	.audio_out_l(audio_out_l),
 	.audio_out_r(audio_out_r),
