@@ -30,7 +30,7 @@ run_case() {
 }
 run_case 16mhz
 run_case 32mhz -generic_top "BURST_SCK_HALF_PS=15625" -generic_top "MAX_MHZ=32"
-# the Alf mcu clock is 63.9 MHz
-run_case 32mhz_clk64 -generic_top "BURST_SCK_HALF_PS=15625" -generic_top "MAX_MHZ=32" -generic_top "CLK_PERIOD_PS=15652"
-run_case classic50_clk64 -generic_top "BURST_SCK_HALF_PS=15625" -generic_top "MAX_MHZ=32" -generic_top "CLK_PERIOD_PS=15652" -generic_top "CLASSIC_SCK_HALF_PS=10000"
+# the Alf-128 mcu clock is 55.9 MHz (50 * 19 / 17)
+run_case 32mhz_clk56 -generic_top "BURST_SCK_HALF_PS=15625" -generic_top "MAX_MHZ=32" -generic_top "CLK_PERIOD_PS=17895"
+run_case classic50_clk56 -generic_top "BURST_SCK_HALF_PS=15625" -generic_top "MAX_MHZ=32" -generic_top "CLK_PERIOD_PS=17895" -generic_top "CLASSIC_SCK_HALF_PS=10000"
 echo "SIMULATION PASSED"
