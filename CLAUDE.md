@@ -34,7 +34,7 @@ The core is not converted to `karabas-go-modules`: it carries its own MCU link, 
 
 ## Release
 
-`alf.kg` (all boards) goes into both release repos, `karabas-go` and `karabas-mini` (`cores/alf.kg`).
+`alf.kg` (all boards) goes into the release repo `karabas-go` (`cores/alf.kg`); `karabas-mini` has no cores any more.
 
 ## Memory
 
