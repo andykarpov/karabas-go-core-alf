@@ -20,7 +20,7 @@ The core is not converted to `karabas-go-modules`: it carries its own MCU link, 
 ## Build
 
 - No Makefile or build script: open `src/karabas-go.xise`, `karabas-mini.xise` or `karabas-minig.xise` in ISE 14.7 and run Generate Programming File. The projects write `src/karabas_<board>_top.bin` and leave the ISE intermediates in `src/` (gitignored, as are the `.prj` / `.xst` files).
-- Pack with `make_core.py` (a symlink to `../../karabas-go-tools/make_core/make_core.py`, gitignored) from `src/core.json` (Go, `alf128.kg1`), `core_mini.json` (`alf128.kg2`), `core_minig.json` (`alf128.kg3`). The `.bin` and `.kg*` files are committed as the release. Bump `build` in the json for a new release.
+- Pack with `make_core.py` (a symlink to `../../karabas-go-tools/make_core/make_core.py`, gitignored) from `src/core.json` (one file for all boards: the common keys, `boards` for what differs; kgo2, karabas-go-tools `docs/kgo2.md`) into `alf128.kg` (`make_core.py core.json alf128.kg`, or `--boards <board>` for one board's bitstream). The `.bin` and `.kg` files are committed as the release. Bump `build` in the json for a new release.
 - The `.ucf` files still say `TS_CLK` 64 MHz, the clock of the plain Alf core; the real clk here is 55.9 MHz.
 
 ## Memory map and features
@@ -29,12 +29,12 @@ The core is not converted to `karabas-go-modules`: it carries its own MCU link, 
 - AY on `#FFFD` / `#BFFD` (clock enable 1.75 MHz), mixed with the beeper: A left, C right, B both. `#5F` ROM bank, `#FE` border and beeper, `#1F` / `#FE` reads the joypads.
 - Unlike `master`, the cartridge banks are not masked to the cartridge size (no `cart_size` mirroring).
 - Core type `fileloader`, id `alf128`, dir `alf`, extensions `.rom,.bin`, `eeprom_bank` 255. The OSD has one item: Reset (Ctrl+Alt+Del). The ROM block loads `rom/alf.rom` at 0. The end of a file load and the gamepad Start reset the CPU.
-- Burst transfers: `mcu.vhd` answers `CMD_CAPS` with caps `03` (burst write, ready always high). Max burst clock 32 MHz on the Mini G, 16 MHz on Go and Mini. `core_mini.json` and `core_minig.json` set `spi_freq` 64.
+- Burst transfers: `mcu.vhd` answers `CMD_CAPS` with caps `03` (burst write, ready always high). Max burst clock 32 MHz on the Mini G, 16 MHz on Go and Mini. `core.json` sets `spi_freq` 64 for the Mini and the Mini G (`boards.mini`, `boards.minig`).
 - `src/sim/run_burst_sim.sh` (ISim): `tb_mcu_burst.vhd`; the extra cases run at the 55.9 MHz clock of this branch (the default `CLK_PS` and its comment are the 63.9 MHz of `master`).
 
 ## Release
 
-The `.kg1` is copied into the release repo `karabas-go` (`cores/alf128.kg1`); `.kg2` / `.kg3` go to `karabas-mini`.
+`alf128.kg` (all boards) goes into both release repos, `karabas-go` and `karabas-mini` (`cores/alf128.kg`).
 
 ## Memory
 
