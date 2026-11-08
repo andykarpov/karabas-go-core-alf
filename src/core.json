@@ -1,7 +1,7 @@
 {
     "id": "alf128",
     "name": "Alf-128",
-    "build": "26101500",
+    "build": "26110801",
     "visible": true,
     "type": "fileloader",
     "dir": "alf",
@@ -18,6 +18,6 @@
         "minig": {"bitstream": "karabas_minig_top.bin", "spi_freq": 64}
     },
     "osd": [
-    {"type": "T", "name": "Reset", "hotkey": "Ctrl+Alt+Del"}
+    {"type": "T", "name": "Reset", "hotkey": "F12"}
     ]
 }
