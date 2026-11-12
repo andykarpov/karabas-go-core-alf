@@ -68,3 +68,9 @@ _xmsgs/
 
 # special scripts
 make_core.py
+
+# board build files of the Makefile (Mini G)
+!src/karabas_minig.prj
+!src/karabas_minig.xst
+!src/karabas_minig.ut
+*.stamp
