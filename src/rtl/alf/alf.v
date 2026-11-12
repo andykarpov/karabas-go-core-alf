@@ -275,7 +275,9 @@ begin
 		model <= model_sw;
 end
 
-assign btn_reset_n = ~kb_reset & ~mcu_busy & fileloader_end_n & ~alf_restart & (model_rst == 4'd0);
+// the machine is held in reset while a cartridge loads (it ran on code in the area being written:
+// a grey border and bars during the load)
+assign btn_reset_n = ~kb_reset & ~mcu_busy & fileloader_end_n & ~fileloader_act & ~alf_restart & (model_rst == 4'd0);
 
 //--------- OSD --------------
 

@@ -22,7 +22,7 @@
         },
         "minig": {
             "link": 2,
-            "build": "26111203",
+            "build": "26111301",
             "bitstream": "karabas_minig.bin",
             "spi_freq": 64
         }
