@@ -27,7 +27,7 @@ architecture BEHAVIORAL of video is
    constant HPAPERSIZE        : integer := 512;          -- Hor. paper area size
    constant VPAPERSIZE        : integer := 384;          -- Vert. paper area size
 
-   constant RIGHTBORDERSIZE   : integer := 64; -- the left border (64) is the rest of HSCREENSIZE, after the porches
+   constant RIGHTBORDERSIZE   : integer := 64+16; -- the pixels come out 16 clocks after the count (fetch pipeline): 48 + 512 + 80 counts = 64 + 512 + 64 on the screen
    constant BOTTOMBORDERSIZE  : integer := 48;
 
    constant HBACKPORCH        : integer := 16; -- VESA front porch (the gap before the sync here)
