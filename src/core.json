@@ -2,21 +2,67 @@
     "id": "alf",
     "name": "Alf",
     "visible": true,
-    "type": "fileloader",
-    "dir": "alf",
-    "filename": "",
-    "extensions": ".rom,.bin",
+    "type": "osd",
     "order": 6,
     "eeprom_bank": 255,
     "roms": [
-    {"filename": "rom/alf.rom", "address": 0}
+        {
+            "filename": "rom/alf.rom",
+            "address": 0
+        }
     ],
     "boards": {
-        "go": {"build": "26110801", "bitstream": "karabas_go_top.bin"},
-        "mini": {"build": "26110801", "bitstream": "karabas_mini_top.bin"},
-        "minig": {"build": "26110801", "bitstream": "karabas_minig_top.bin", "spi_freq": 64}
+        "go": {
+            "link": 2,
+            "build": "26111345",
+            "bitstream": "karabas_go.bin"
+        },
+        "mini": {
+            "link": 2,
+            "build": "26111345",
+            "bitstream": "karabas_mini.bin"
+        },
+        "minig": {
+            "link": 2,
+            "build": "26111301",
+            "bitstream": "karabas_minig.bin",
+            "spi_freq": 64
+        }
     },
     "osd": [
-    {"type": "T", "name": "Reset", "hotkey": "F12"}
+        {
+            "type": "T",
+            "name": "Reset",
+            "hotkey": "F12"
+        },
+        {
+            "type": "S",
+            "name": "Model",
+            "options": [
+                "Alf",
+                "Alf-128"
+            ],
+            "default": 0,
+            "hotkey": "Menu+M"
+        },
+        {
+            "type": "S",
+            "name": "AY",
+            "options": [
+                "Off",
+                "On"
+            ],
+            "default": 1,
+            "hotkey": "Menu+A"
+        },
+        {
+            "type": "FL",
+            "name": "Cart",
+            "slot": 0,
+            "extensions": ".rom,.bin",
+            "dir": "/alf",
+            "autoload": true,
+            "hotkey": "Menu+F"
+        }
     ]
 }

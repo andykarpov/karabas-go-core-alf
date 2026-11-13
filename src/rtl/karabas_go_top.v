@@ -176,6 +176,7 @@ assign FT_SPI_CS_N = 1'b1;
 assign FT_SPI_SCK = 1'b1;
 assign FT_SPI_MOSI = 1'b1;
 
+
 assign SD_CS_N = 1'b1;
 assign SD_CLK = 1'b1;
 assign SD_DI = 1'b1;
@@ -185,27 +186,31 @@ wire clk, clk_vga, clk_midi, areset;
 wire [15:0] audio_out_l, audio_out_r;
 wire audio_beeper;
 wire [7:0] video_r, video_g, video_b;
-wire video_hsync, video_vsync;
+wire video_hsync, video_vsync, video_blank;
+wire dvi_only;
+wire clk_hdmi, clk_hdmi_n;   // the HDMI clocks of the PLL of alf: not used on the Go
 
 // ---------- ALF -------------
-// burst transfers from the mcu (karabas-go-firmware docs/burst_protocol.md)
+// MCU link v2 (karabas-go-firmware docs/link_v2.md): mcu_burst_ready is the INT on MCU_SPI_IO[0] (N9)
 wire mcu_burst_ready;
 assign MCU_SPI_IO[0] = mcu_burst_ready;
 assign MCU_SPI_IO[1] = 1'bz;
 
-alf alf(
+// MCU_SCK is not on a clock pin here: no bursts on link v2 anyway
+alf #(.LINK(2)) alf( // link v2: mcu_burst_ready is the interrupt to the mcu
 	.clk_sys(CLK_50MHZ),
 	
 	.clk(clk),
 	.clk_vga(clk_vga),
 	.clk_midi(clk_midi),
+	.clk_hdmi(clk_hdmi),
+	.clk_hdmi_n(clk_hdmi_n),
 	.areset(areset),
 	
 	.mcu_mosi(MCU_MOSI),
 	.mcu_miso(MCU_MISO),
 	.mcu_sck(MCU_SCK),
 	.mcu_cs_n(MCU_CS_N),
-	// burst transfers: firmware IO0 (GPIO14) = MCU_SPI_IO[1] (M11), IO1 (GPIO2) = MCU_SPI_IO[0] (N9)
 	.mcu_burst_cs_n(MCU_SPI_IO[1]),
 	.mcu_burst_ready(mcu_burst_ready),
 	

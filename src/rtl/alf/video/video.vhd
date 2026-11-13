@@ -27,16 +27,16 @@ architecture BEHAVIORAL of video is
    constant HPAPERSIZE        : integer := 512;          -- Hor. paper area size
    constant VPAPERSIZE        : integer := 384;          -- Vert. paper area size
 
-   constant RIGHTBORDERSIZE   : integer := 64+16;
+   constant RIGHTBORDERSIZE   : integer := 64+16; -- the pixels come out 16 clocks after the count (fetch pipeline): 48 + 512 + 80 counts = 64 + 512 + 64 on the screen
    constant BOTTOMBORDERSIZE  : integer := 48;
 
-   constant HBACKPORCH        : integer := 48;
-   constant HSYNCLENGTH       : integer := 96-16; --
-   constant HFRONTPORCH       : integer := 16;
+   constant HBACKPORCH        : integer := 16; -- VESA front porch (the gap before the sync here)
+   constant HSYNCLENGTH       : integer := 96; -- VESA 640x480@60: line 800 clocks (was 784: sync 80, borders 80 / 48, not taken by HDMI captures)
+   constant HFRONTPORCH       : integer := 48; -- VESA back porch (the gap after the sync here)
 
-   constant VBACKPORCH        : integer := 33;
+   constant VBACKPORCH        : integer := 10; -- VESA front porch (before the sync), 525 lines
    constant VSYNCLENGTH       : integer := 2;
-   constant VFRONTPORCH       : integer := 10;
+   constant VFRONTPORCH       : integer := 33; -- VESA back porch (after the sync); borders 48 / 48
 
    constant HPIXELSIZE        : integer := 2;
    constant VPIXELSIZE        : integer := 2;
@@ -97,9 +97,15 @@ begin
          HCOUNTER <= (others => '0');
          HPSCOUNTER <= (others => '0');
          HPIXELCOUNTER <= (others => '0');
-         
+      end if;
+      -- the line count steps at the start of the hsync, not at HCOUNTER 0: the visible line runs from
+      -- the left border (the end of the count) over 0 into the right border, so a step at 0 cut the
+      -- vertical blank / vsync into it (DE runs of 64 / 576 pixels, vsync edges inside the picture: HDMI
+      -- sinks and captures took no picture). Now the whole visible line has one line number and the vsync
+      -- edges come with the hsync leading edge.
+      if HCOUNTER = HPAPERSIZE + RIGHTBORDERSIZE + HBACKPORCH - 1 then
          INTCOUNTER <= INTCOUNTER + 1;
-         if INTCOUNTER = 628 then
+         if INTCOUNTER = 624 then -- INT every 625 lines x 800 clocks = 20.0 ms (50 Hz; was 629 x 784 = 50.7 Hz)
             INTCOUNTER <= (others => '0');
          end if;
 

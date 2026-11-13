@@ -186,7 +186,7 @@ NET "MCU_IO<0>"     LOC="G6"   | IOSTANDARD = LVCMOS33 | PULLUP; # burst cs_n: i
 NET "MCU_IO<1>"     LOC="F6"   | IOSTANDARD = LVCMOS33;
 NET "MCU_IO<2>"     LOC="F7"   | IOSTANDARD = LVCMOS33 | PULLUP; # SD2
 NET "MCU_IO<3>"     LOC="D6"   | IOSTANDARD = LVCMOS33 | PULLUP; # FT
-NET "MCU_IO<4>"     LOC="E7"   | IOSTANDARD = LVCMOS33;
+NET "FT_CLK_OUT"    LOC="E7"   | IOSTANDARD = LVCMOS33; # MCU_IO<4> before: the clock of the FT812
 
 # TMDS
 NET "TMDS_P<0>"       LOC="C13"   | IOSTANDARD = TMDS_33; # HDMI_D0P
@@ -219,17 +219,20 @@ NET "FLASH_WP_N"    LOC="N12"  | IOSTANDARD = LVCMOS33; # CONF_IO2
 NET "FLASH_HOLD_N"  LOC="P12"  | IOSTANDARD = LVCMOS33; # CONF_IO3
 
 # Timings
-
-NET "clk" TNM_NET = "clk";
-NET "clk_vga" TNM_NET = "clk_vga";
-NET "clk_hdmi" TNM_NET = "CLK_HDMI" | S;
-NET "clk_hdmi_n" TNM_NET = "CLK_HDMI_n" | S;
-
-TIMESPEC "TS_CLK" = PERIOD "clk" 64000 kHz;
-TIMESPEC "TS_CLK_VGA" = PERIOD "clk_vga" 25200 kHz;
-TIMESPEC "TS_CLK_HDMI" = PERIOD "CLK_HDMI" TS_CLK_VGA*5;
-TIMESPEC "TS_CLK_HDMI_n" = PERIOD "CLK_HDMI_n" TS_CLK_VGA*5 PHASE + 3.5 ns;
-
+# all clocks from the PLL of alf (kg_pll): derived from the 50 MHz input
+NET "CLK_50MHZ" TNM_NET = "CLK_50MHZ";
+TIMESPEC "TS_CLK_50MHZ" = PERIOD "CLK_50MHZ" 20 ns HIGH 50%;
+NET "clk" TNM_NET = "TG_CLK";
+NET "clk_vga" TNM_NET = "TG_CLK_VGA";
+# the machine (clk) and the video (clk_vga) meet only through the dual clock vram, the OSD overlay RAM and
+# quasi static registers (border, screen page, INT): no timing between them
+TIMESPEC "TS_CLK_TO_VGA" = FROM "TG_CLK" TO "TG_CLK_VGA" TIG;
+TIMESPEC "TS_VGA_TO_CLK" = FROM "TG_CLK_VGA" TO "TG_CLK" TIG;
+# the SPI link of the mcu (kg_mcu2 synchronises SCK into clk)
+NET "MCU_SCK" TNM_NET = "TG_CLK_MCU";
+TIMESPEC "TS_CLK_MCU" = PERIOD "TG_CLK_MCU" 32 MHz;
+TIMESPEC "TS_MCU_TO_CLK" = FROM "TG_CLK_MCU" TO "TG_CLK" TIG;
+TIMESPEC "TS_CLK_TO_MCU" = FROM "TG_CLK" TO "TG_CLK_MCU" TIG;
 NET "MCU_SCK" CLOCK_DEDICATED_ROUTE = FALSE;
 NET "FT_CLK" CLOCK_DEDICATED_ROUTE = FALSE;
 NET "ADC_BCK" CLOCK_DEDICATED_ROUTE = FALSE;

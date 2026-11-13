@@ -152,7 +152,7 @@ assign FLASH_HOLD_N = 1'b1;
 assign FT_SPI_CS_N = 1'b1;
 assign FT_SPI_SCK = 1'b1;
 assign FT_SPI_MOSI = 1'b1;
-assign FT_CLK_OUT = 1'b0;
+
 
 assign SD_CS_N = 1'b1;
 assign SD_CLK = 1'b1;
@@ -162,18 +162,21 @@ assign SD_DI = 1'b1;
 wire clk, clk_vga, clk_midi, areset;
 wire [15:0] audio_out_l, audio_out_r;
 wire [7:0] video_r, video_g, video_b;
-wire video_hsync, video_vsync;
+wire video_hsync, video_vsync, video_blank;
 wire dvi_only;
 
-// hdmi pll
+// the FT812 must always get a clock (karabas-go-notes ft-clk-out-required): clk / 7 = 7.9 MHz (duty 4 / 3)
+reg [2:0] ft_div = 3'd0;
+reg ft_clk_r = 1'b0;
+always @(posedge clk) begin
+	ft_div <= (ft_div == 3'd6) ? 3'd0 : ft_div + 1'd1;
+	ft_clk_r <= (ft_div < 3'd4);
+end
+assign FT_CLK_OUT = ft_clk_r;
+
+// the HDMI clocks come from the PLL of alf
 wire clk_hdmi, clk_hdmi_n;
-wire lockedx5;
-pllx5 pllx5(
-	.CLK_IN1(clk_vga),
-	.CLK_OUT1(clk_hdmi),
-	.CLK_OUT2(clk_hdmi_n),
-	.LOCKED(lockedx5)
-);	
+
 
 // ---------- ALF -------------
 // burst transfers from the mcu (karabas-go-firmware docs/burst_protocol.md)
@@ -183,12 +186,14 @@ assign MCU_IO[0] = 1'bz;
 assign MCU_IO[5:2] = 4'bzzzz;
 
 // Rev.G has MCU_SCK on a global clock pin: bursts at up to 32 MHz
-alf #(.BURST_MAX_MHZ(32)) alf(
+alf #(.BURST_MAX_MHZ(32), .LINK(2)) alf( // link v2: mcu_burst_ready (MCU_IO[1]) is the interrupt to the mcu
 	.clk_sys(CLK_50MHZ),
 	
 	.clk(clk),
 	.clk_vga(clk_vga),
 	.clk_midi(clk_midi),
+	.clk_hdmi(clk_hdmi),
+	.clk_hdmi_n(clk_hdmi_n),
 	.areset(areset),
 	
 	.mcu_mosi(MCU_MOSI),
@@ -257,48 +262,46 @@ ODDR2 oddr_adc2(
 );
 
 // ------------ HDMI ----------------
+// zhdmi_tx of karabas-go-modules: the data islands follow the syncs of the core (the old hdmi.vhd had its own
+// 858 x 525 counters for 720x480 at 27 MHz, so its audio packets fell into the picture of the 640x480 and
+// HDMI captures took no picture); DVI with dvi_only. Audio 48 kHz strobe from the 25 MHz pixel clock.
 
-wire [9:0] tmds_red, tmds_green, tmds_blue;
+// dvi_only (a quasi static bit of the mcu, clk) into the pixel clock: it reaches the serializers
+reg [1:0] dvi_only_v = 2'b00;
+always @(posedge clk_vga) dvi_only_v <= { dvi_only_v[0], dvi_only };
 
-hdmi hdmi(
-	.I_CLK_PIXEL(clk_vga),
-	.I_R(video_r),
-	.I_G(video_g),
-	.I_B(video_b),
-	.I_BLANK(video_blank),
-	.I_HSYNC(video_hsync),
-	.I_VSYNC(video_vsync),
-	.I_AUDIO_ENABLE(1'b1),
-	.I_AUDIO_PCM_L(audio_out_l[15:0]),
-	.I_AUDIO_PCM_R(audio_out_r[15:0]),
-	.O_RED(tmds_red),
-	.O_GREEN(tmds_green),
-	.O_BLUE(tmds_blue)
-);
+reg [15:0] aud_acc = 16'd0;
+reg aud_stb = 1'b0;
+reg [23:0] hdmi_l = 24'd0, hdmi_r = 24'd0;
+always @(posedge clk_vga) begin
+	aud_stb <= 1'b0;
+	if (aud_acc >= 16'd25000 - 16'd48) begin
+		aud_acc <= aud_acc + 16'd48 - 16'd25000;
+		aud_stb <= 1'b1;
+		hdmi_l <= { audio_out_l, 8'd0 };
+		hdmi_r <= { audio_out_r, 8'd0 };
+	end
+	else
+		aud_acc <= aud_acc + 16'd48;
+end
 
-wire [9:0] dvi_red, dvi_green, dvi_blue;
-
-dvi dvi(
-	.CLK(clk_vga),
-	.RESET(areset),
-	.RGB({video_r,video_g,video_b}),
-	.HSYNC(video_hsync),
-	.VSYNC(video_vsync),
-	.DE(~video_blank),
-	.ENC_RED(dvi_red),
-	.ENC_GREEN(dvi_green),
-	.ENC_BLUE(dvi_blue)
-);
-
-hdmi_out_xilinx hdmiio(
-	.clock_pixel_i(clk_vga),
-	.clock_tdms_i(clk_hdmi),
-	.clock_tdms_n_i(clk_hdmi_n),
-	.red_i(dvi_only ? dvi_red : tmds_red),
-	.green_i(dvi_only ? dvi_green : tmds_green),
-	.blue_i(dvi_only ? dvi_blue : tmds_blue),
-	.tmds_out_p(TMDS_P),
-	.tmds_out_n(TMDS_N)
+hdmi_tx #(.SAMPLE_FREQ(48000), .INPUT_REG(1)) hdmi (
+	.clk(clk_vga),
+	.sclk(clk_hdmi),
+	.sclk_n(clk_hdmi_n),
+	.reset(areset),
+	.rgb({video_r, video_g, video_b}),
+	.vsync(video_vsync),
+	.hsync(video_hsync),
+	.de(~video_blank),
+	.audio_en(~dvi_only_v[1]),
+	.audio_l(hdmi_l),
+	.audio_r(hdmi_r),
+	.audio_clk(aud_stb),
+	.tx_clk_n(TMDS_N[3]),
+	.tx_clk_p(TMDS_P[3]),
+	.tx_d_n(TMDS_N[2:0]),
+	.tx_d_p(TMDS_P[2:0])
 );
 
 endmodule
