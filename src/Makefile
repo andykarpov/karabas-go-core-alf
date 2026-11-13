@@ -7,12 +7,11 @@
 #   make minig-report    LUTs, slices, block RAMs and the timing result of the last build
 #   make clean           the intermediate files (not the .bin / .kg files, they are in git)
 #
-# Inputs per board: karabas_<board>.prj (the source list), .xst, .ucf, .ut. The Mini G is on MCU link v2;
-# Go and Mini still build in ISE from their .xise projects (they move with the second pass of link v2).
+# Inputs per board: karabas_<board>.prj (the source list), .xst, .ucf, .ut. All boards are on MCU link v2.
 
 ISE_SETTINGS ?= /opt/Xilinx/14.7/ISE_DS/settings64.sh
 PART = xc6slx25-ftg256-2
-BOARDS = minig
+BOARDS = go mini minig
 
 SHELL = /bin/bash
 .SHELLFLAGS = -e -o pipefail -c
