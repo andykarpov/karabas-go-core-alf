@@ -31,12 +31,8 @@
     },
     "osd": [
         {
-            "type": "T",
-            "name": "Reset",
-            "hotkey": "F12"
-        },
-        {
             "type": "S",
+            "index": 1,
             "name": "Model",
             "options": [
                 "Alf",
@@ -47,6 +43,7 @@
         },
         {
             "type": "S",
+            "index": 2,
             "name": "AY",
             "options": [
                 "Off",
@@ -63,6 +60,12 @@
             "dir": "/alf",
             "autoload": true,
             "hotkey": "Menu+F"
+        },
+        {
+            "type": "T",
+            "index": 0,
+            "name": "Reset",
+            "hotkey": "F12"
         }
     ]
 }
