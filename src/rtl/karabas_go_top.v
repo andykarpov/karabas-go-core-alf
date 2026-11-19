@@ -253,14 +253,14 @@ assign VGA_B = video_b;
 assign VGA_HS = video_hsync;
 assign VGA_VS = video_vsync;
 
-// video dac clock
+// the pixel clock of the VGA DAC, inverted: the DAC takes the pixel on the rising V_CLK, the middle of the pixel
 ODDR2 u_v_clk (
 	.Q(V_CLK),
 	.C0(clk_vga),
 	.C1(~clk_vga),
 	.CE(1'b1),
-	.D0(1'b1),
-	.D1(1'b0),
+	.D0(1'b0),
+	.D1(1'b1),
 	.R(1'b0),
 	.S(1'b0)
 );
